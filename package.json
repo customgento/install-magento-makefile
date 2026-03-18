@@ -1,0 +1,23 @@
+{
+  "name": "create-magento",
+  "version": "1.0.0",
+  "description": "Bootstrap a fresh Magento 2 + Warden development environment with a single command.",
+  "bin": {
+    "create-magento": "bin/create-magento.js"
+  },
+  "files": [
+    "bin/",
+    "Makefile"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "keywords": [
+    "magento",
+    "magento2",
+    "warden",
+    "development",
+    "scaffold"
+  ],
+  "license": "MIT"
+}
