@@ -69,27 +69,26 @@ make create-magento app.myshop.test 2.4.7-p5 PHP_VERSION=8.2
 
 ## What it does
 
-The installer runs 7 sequential steps:
+Before the numbered steps begin, the installer runs a **pre-flight validation**: it checks that both arguments are provided, that `warden` is available in `$PATH`, and that the target project directory does not already exist.
 
-### 1. Validate
-Checks that both arguments are provided, that `warden` is available in `$PATH`, and that the target project directory does not already exist.
+The 8 numbered steps are:
 
-### 2. Create project directory
+### 1. Create project directory
 Creates `<project-name>/` next to the Makefile. All Magento files will live here.
 
-### 3. Initialise Warden environment
+### 2. Initialise Warden environment
 - Runs `warden env-init` with environment type `magento2`
 - Patches `PHP_VERSION` in the generated `.env` file
 - Signs a local TLS certificate for `<project-name>.test`
 
-### 4. Start Warden environment
+### 3. Start Warden environment
 - Brings up all Docker services (PHP-FPM, Nginx, MySQL, Redis, OpenSearch, RabbitMQ, Varnish)
 - Waits 10 seconds for Mutagen file sync to initialise
 
-### 5. Install Magento via Composer
+### 4. Install Magento via Composer
 Downloads `magento/project-community-edition` at the requested version from `repo.magento.com` and installs it into the container webroot.
 
-### 6. Run Magento setup:install
+### 5. Run Magento setup:install
 Installs Magento with the following service configuration:
 
 | Service | Host | Notes |
@@ -102,7 +101,7 @@ Installs Magento with the following service configuration:
 | RabbitMQ | `rabbitmq:5672` | user: `guest` |
 | Varnish | `varnish:80` | full-page cache |
 
-### 7. Apply environment configuration
+### 6. Apply environment configuration
 Locks the following settings via `--lock-env` (they cannot be changed from the admin panel):
 
 | Config path | Value | Purpose |
@@ -115,8 +114,16 @@ Locks the following settings via `--lock-env` (they cannot be changed from the a
 | `system/full_page_cache/ttl` | `604800` | FPC TTL: 7 days |
 | `catalog/search/enable_eav_indexer` | `1` | Enable EAV indexer for search |
 
-### 8. Enable developer mode
+### 7. Enable developer mode
 Sets Magento to developer mode so errors are shown and static content is generated on the fly.
+
+### 8. Disable extra modules
+Disables two modules that are not needed in a local development environment:
+
+| Module | Why disabled |
+|--------|-------------|
+| `Magento_TwoFactorAuth` | 2FA on the admin login blocks access during local development |
+| `Magento_AdminAdobeImsTwoFactorAuth` | Adobe IMS-based 2FA, also blocks admin access locally |
 
 ## Credentials
 

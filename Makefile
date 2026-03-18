@@ -36,7 +36,7 @@ help:
 	@printf "  PHP_VERSION=%-6s  PHP version inside the container (default: 8.3)\n" "$(PHP_VERSION)"
 
 .PHONY: create-magento
-create-magento: _validate _create-dir _warden-init _warden-up _composer-install _magento-install _magento-configure _magento-dev-mode
+create-magento: _validate _create-dir _warden-init _warden-up _composer-install _magento-install _magento-configure _magento-dev-mode _magento-disable-extra-modules
 	@echo ""
 	@echo "=================================================================="
 	@echo " Magento $(_M2_VERSION) is ready!"
@@ -77,12 +77,12 @@ _validate:
 
 .PHONY: _create-dir
 _create-dir:
-	@echo "→ [1/7] Creating project directory"
+	@echo "→ [1/8] Creating project directory"
 	@mkdir -p "$(_PROJECT_DIR)"
 
 .PHONY: _warden-init
 _warden-init:
-	@echo "→ [2/7] Initialising Warden environment"
+	@echo "→ [2/8] Initialising Warden environment"
 	@cd "$(_PROJECT_DIR)" && warden env-init "$(_ENV_NAME)" magento2
 	@# Patch the PHP version that warden wrote into .env
 	@sed -i.bak "s/^PHP_VERSION=.*/PHP_VERSION=$(PHP_VERSION)/" "$(_PROJECT_DIR)/.env"
@@ -92,14 +92,14 @@ _warden-init:
 
 .PHONY: _warden-up
 _warden-up:
-	@echo "→ [3/7] Starting Warden environment"
+	@echo "→ [3/8] Starting Warden environment"
 	@cd "$(_PROJECT_DIR)" && warden env up
 	@echo "→       Waiting 10 seconds for Mutagen sync to initialise..."
 	@sleep 10
 
 .PHONY: _composer-install
 _composer-install:
-	@echo "→ [4/7] Installing Magento $(_M2_VERSION) via Composer (this may take several minutes)"
+	@echo "→ [4/8] Installing Magento $(_M2_VERSION) via Composer (this may take several minutes)"
 	@cd "$(_PROJECT_DIR)" && warden env exec -T php-fpm rm -rf /tmp/m2
 	@cd "$(_PROJECT_DIR)" && warden env exec -T php-fpm composer create-project \
 		--repository-url=https://repo.magento.com/ \
@@ -110,7 +110,7 @@ _composer-install:
 
 .PHONY: _magento-install
 _magento-install:
-	@echo "→ [5/7] Running Magento setup:install"
+	@echo "→ [5/8] Running Magento setup:install"
 	@cd "$(_PROJECT_DIR)" && warden env exec -T php-fpm bin/magento setup:install \
 		--base-url=https://app.$(_ENV_NAME).test \
 		--db-host=db \
@@ -147,7 +147,7 @@ _magento-install:
 
 .PHONY: _magento-configure
 _magento-configure:
-	@echo "→ [6/7] Applying environment configuration"
+	@echo "→ [6/8] Applying environment configuration"
 	@cd "$(_PROJECT_DIR)" && warden env exec -T php-fpm bin/magento config:set --lock-env web/secure/offloader_header X-Forwarded-Proto
 	@cd "$(_PROJECT_DIR)" && warden env exec -T php-fpm bin/magento config:set --lock-env web/secure/use_in_frontend 1
 	@cd "$(_PROJECT_DIR)" && warden env exec -T php-fpm bin/magento config:set --lock-env web/secure/use_in_adminhtml 1
@@ -158,5 +158,10 @@ _magento-configure:
 
 .PHONY: _magento-dev-mode
 _magento-dev-mode:
-	@echo "→ [7/7] Enabling developer mode"
+	@echo "→ [7/8] Enabling developer mode"
 	@cd "$(_PROJECT_DIR)" && warden env exec -T php-fpm bin/magento deploy:mode:set developer
+
+.PHONY: _magento-disable-extra-modules
+_magento-disable-extra-modules:
+	@echo "→ [8/8] Disabling extra modules"
+	@cd "$(_PROJECT_DIR)" && warden env exec -T php-fpm bin/magento module:disable Magento_TwoFactorAuth Magento_AdminAdobeImsTwoFactorAuth
