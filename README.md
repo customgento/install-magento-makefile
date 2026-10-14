@@ -61,17 +61,21 @@ Override any variable directly on the command line:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PHP_VERSION` | `8.3` | PHP version used inside the Warden container |
+| `SAMPLE_DATA` | `false` | Set to `true` to install Magento sample data (Luma catalog) |
 
 ```bash
 # Use a different PHP version
 make create-magento app.myshop.test 2.4.7-p5 PHP_VERSION=8.2
+
+# Install sample data
+make create-magento app.myshop.test 2.4.8-p3 SAMPLE_DATA=true
 ```
 
 ## What it does
 
 Before the numbered steps begin, the installer runs a **pre-flight validation**: it checks that both arguments are provided, that `warden` is available in `$PATH`, and that the target project directory does not already exist.
 
-The 8 numbered steps are:
+The 9 numbered steps are:
 
 ### 1. Create project directory
 Creates `<project-name>/` next to the Makefile. All Magento files will live here.
@@ -124,6 +128,15 @@ Disables two modules that are not needed in a local development environment:
 |--------|-------------|
 | `Magento_TwoFactorAuth` | 2FA on the admin login blocks access during local development |
 | `Magento_AdminAdobeImsTwoFactorAuth` | Adobe IMS-based 2FA, also blocks admin access locally |
+
+### 9. Install sample data (optional)
+Only runs when `SAMPLE_DATA=true` is passed; otherwise the step is skipped. It installs the Luma demo catalog:
+
+1. `bin/magento sampledata:deploy` downloads the sample data packages via Composer (uses the same Marketplace keys)
+2. `bin/magento setup:upgrade` enables the sample data modules and imports products, categories, CMS pages and customers
+3. `bin/magento indexer:reindex` and `bin/magento cache:flush`
+
+This adds several minutes to the installation.
 
 ## Credentials
 
