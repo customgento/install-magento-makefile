@@ -23,10 +23,12 @@ if (!domain || !version || args.includes('--help') || args.includes('-h')) {
     npx create-magento app.myshop.test 2.4.8-p3
     npx create-magento app.myshop.test 2.4.8-p3 PHP_VERSION=8.2
     npx create-magento app.myshop.test 2.4.8-p3 SAMPLE_DATA=true
+    npx create-magento app.myshop.test 2.4.8-p3 SAMPLE_DATA=true HYVA_THEME=true
 
   Variables:
     PHP_VERSION    PHP version inside the Warden container  (default: 8.3)
     SAMPLE_DATA    Install Magento sample data              (default: false)
+    HYVA_THEME     Install and activate the Hyvä theme      (default: false)
   `);
   process.exit(domain && version ? 0 : 1);
 }

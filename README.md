@@ -33,8 +33,25 @@ warden svc up
 
 ## Usage
 
+### Quick start with npx (recommended)
+
+The installer is published on npm as [`create-magento`](https://www.npmjs.com/package/create-magento), so you do not need to clone this repository:
+
 ```bash
-make create-magento <domain> <magento-version>
+npx create-magento <domain> <magento-version> [KEY=VALUE ...]
+```
+
+```bash
+npx create-magento app.examplemagento.test 2.4.8-p3
+npx create-magento app.examplemagento.test 2.4.8-p3 SAMPLE_DATA=true HYVA_THEME=true
+```
+
+The project directory is created inside the directory you run the command from. Any `KEY=VALUE` argument is forwarded to `make` as a variable (see [Variables](#variables)).
+
+### Using the Makefile directly
+
+```bash
+make create-magento <domain> <magento-version> [KEY=VALUE ...]
 ```
 
 ### Example
@@ -62,6 +79,7 @@ Override any variable directly on the command line:
 |----------|---------|-------------|
 | `PHP_VERSION` | `8.3` | PHP version used inside the Warden container |
 | `SAMPLE_DATA` | `false` | Set to `true` to install Magento sample data (Luma catalog) |
+| `HYVA_THEME` | `false` | Set to `true` to install the open-source [Hyvä theme](https://hyva.io) and make it the active theme |
 
 ```bash
 # Use a different PHP version
@@ -69,13 +87,16 @@ make create-magento app.myshop.test 2.4.7-p5 PHP_VERSION=8.2
 
 # Install sample data
 make create-magento app.myshop.test 2.4.8-p3 SAMPLE_DATA=true
+
+# Install sample data and the Hyvä theme
+make create-magento app.myshop.test 2.4.8-p3 SAMPLE_DATA=true HYVA_THEME=true
 ```
 
 ## What it does
 
 Before the numbered steps begin, the installer runs a **pre-flight validation**: it checks that both arguments are provided, that `warden` is available in `$PATH`, and that the target project directory does not already exist.
 
-The 9 numbered steps are:
+The 10 numbered steps are:
 
 ### 1. Create project directory
 Creates `<project-name>/` next to the Makefile. All Magento files will live here.
@@ -84,6 +105,7 @@ Creates `<project-name>/` next to the Makefile. All Magento files will live here
 - Runs `warden env-init` with environment type `magento2`
 - Patches `PHP_VERSION` in the generated `.env` file
 - Signs a local TLS certificate for `<project-name>.test`
+- Reloads Traefik so it serves the new certificate (Warden's `sign-certificate` is supposed to do this itself but its check fails silently)
 
 ### 3. Start Warden environment
 - Brings up all Docker services (PHP-FPM, Nginx, MySQL, Redis, OpenSearch, RabbitMQ, Varnish)
@@ -138,6 +160,17 @@ Only runs when `SAMPLE_DATA=true` is passed; otherwise the step is skipped. It i
 
 This adds several minutes to the installation.
 
+### 10. Install Hyvä theme (optional)
+Only runs when `HYVA_THEME=true` is passed; otherwise the step is skipped. It installs the open-source [Hyvä theme](https://hyva.io) (OSL 3.0 / AFL 3.0 since 1.4.0) and makes it the active storefront theme:
+
+1. Registers the Hyvä GitHub repositories in `composer.json` as `git` repositories, as documented in the [Hyvä default theme README](https://github.com/hyva-themes/magento2-default-theme#installation). No Hyvä account or key is needed.
+2. `composer require hyva-themes/magento2-default-theme`
+3. `bin/magento setup:upgrade`, which also registers the theme in the database
+4. Disables the legacy customer captcha (`customer/captcha/enable 0`), which Hyvä does not support
+5. Sets `design/theme/theme_id` to the `Hyva/default` theme and flushes the cache
+
+Works together with `SAMPLE_DATA=true`: the Luma sample catalog is then rendered with Hyvä.
+
 ## Credentials
 
 | | Value |
@@ -160,6 +193,13 @@ cd examplemagento && warden env down && cd .. && rm -rf examplemagento
 
 **Composer authentication error**
 Your Magento Marketplace keys are missing or wrong. Check `~/.composer/auth.json` and verify the keys at [commercemarketplace.adobe.com](https://commercemarketplace.adobe.com/customer/accessKeys/).
+
+**Browser shows a `warden.test` certificate instead of `<project-name>.test`**
+Traefik did not load the project certificate. Reload it with:
+```bash
+warden svc up traefik && warden svc restart traefik
+```
+The installer does this automatically since version 1.2.0.
 
 **Certificate not trusted in browser**
 Run `warden trust-ca` once to add Warden's root CA to your system trust store.
